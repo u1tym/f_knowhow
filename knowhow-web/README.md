@@ -4,8 +4,10 @@ Vue 3 + TypeScript + Vite で動く、ノウハウ管理用のスマホ向け画
 
 ## 必要な環境
 
-- Node.js（推奨: 最新の LTS）
+- Node.js **18.0 以上**（Raspberry Pi 等でのビルドを想定。Vite は 5 系に固定してあり、Node 18 で動作します）
 - npm
+
+Vite 8 系は Node.js 20.19+ が必要なため、このプロジェクトでは Node 18 でもビルドできるよう **Vite 5** を使っています。Node を 20.19 以上に上げられる環境では、そのままで問題ありません。
 
 ## セットアップ
 
@@ -90,4 +92,4 @@ HTTP API のパス・JSON 形式は、リポジトリ直下の **`SPECIFICATION_
 
 - Vue 3（Composition API、`script setup`）
 - TypeScript
-- Vite 8
+- Vite 5（Node.js 18 互換のため 8 系は使用していません）
