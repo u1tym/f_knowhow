@@ -7,6 +7,7 @@ export default defineConfig(({ mode }) => {
     env.VITE_KNOWHOW_PROXY_TARGET?.trim() || 'http://192.168.2.169:9999'
 
   return {
+    base: '/mobile/knowhow/',
     plugins: [vue()],
     server: {
       proxy: {
