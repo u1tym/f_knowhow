@@ -253,7 +253,7 @@ async function submitKnowhow() {
               alt=""
             />
           </span>
-          <h1 class="header-title">KNOWHOW管理</h1>
+          <h1 class="header-title">KNOWHOW</h1>
         </div>
         <button type="button" class="header-config-btn" aria-label="設定">
           <span class="header-icon-ring header-icon-ring--34">
@@ -275,15 +275,16 @@ async function submitKnowhow() {
     </p>
 
     <section class="field">
-      <label class="label" for="major-select">大項目</label>
       <div class="row">
         <select
           id="major-select"
           v-model="selectedMajorId"
           class="select"
+          :class="{ 'select--empty': selectedMajorId === '' }"
           :disabled="majorDisabled"
+          aria-label="大項目"
         >
-          <option value="">選択してください</option>
+          <option value="" disabled hidden>大項目</option>
           <option v-for="m in majors" :key="m.id" :value="String(m.id)">
             {{ m.name }}
           </option>
@@ -301,15 +302,16 @@ async function submitKnowhow() {
     </section>
 
     <section class="field">
-      <label class="label" for="middle-select">中項目</label>
       <div class="row">
         <select
           id="middle-select"
           v-model="selectedMiddleId"
           class="select"
+          :class="{ 'select--empty': selectedMiddleId === '' }"
           :disabled="middleDisabled"
+          aria-label="中項目"
         >
-          <option value="">選択してください</option>
+          <option value="" disabled hidden>中項目</option>
           <option v-for="m in middles" :key="m.id" :value="String(m.id)">
             {{ m.name }}
           </option>
@@ -327,15 +329,16 @@ async function submitKnowhow() {
     </section>
 
     <section class="field">
-      <label class="label" for="knowhow-select">タイトル（ノウハウ）</label>
       <div class="row">
         <select
           id="knowhow-select"
           v-model="selectedKnowhowId"
           class="select"
+          :class="{ 'select--empty': selectedKnowhowId === '' }"
           :disabled="knowhowSelectDisabled"
+          aria-label="タイトル（ノウハウ）"
         >
-          <option value="">選択してください</option>
+          <option value="" disabled hidden>タイトル（ノウハウ）</option>
           <option v-for="k in knowhowList" :key="k.id" :value="String(k.id)">
             {{ k.title }}
           </option>
@@ -582,6 +585,15 @@ async function submitKnowhow() {
 .select:disabled {
   opacity: 0.45;
   cursor: not-allowed;
+}
+
+/* 未選択時はプレースホルダー風（<option disabled hidden> の文言） */
+.select--empty:not(:disabled) {
+  color: var(--kh-muted);
+}
+
+.select option {
+  color: #1a1a1a;
 }
 
 .icon-btn {

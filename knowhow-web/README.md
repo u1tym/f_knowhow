@@ -1,4 +1,4 @@
-# KNOWHOW管理（フロントエンド）
+# KNOWHOW（フロントエンド）
 
 Vue 3 + TypeScript + Vite で動く、ノウハウ管理用のスマホ向け画面です。バックエンドの HTTP API と連携します。
 
