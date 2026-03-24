@@ -1,1 +1,1 @@
-{"root":["./src/main.ts","./src/vite-env.d.ts","./src/api/knowhow-api.ts","./src/api/types.ts","./src/config/knowhow-api.config.ts","./src/app.vue"],"version":"5.9.3"}
+{"root":["./src/main.ts","./src/vite-env.d.ts","./src/api/knowhow-api.ts","./src/api/types.ts","./src/config/knowhow-api.config.ts","./src/App.vue"],"version":"5.9.3"}

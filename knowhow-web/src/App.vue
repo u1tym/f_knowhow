@@ -231,7 +231,7 @@ async function submitKnowhow() {
         <div class="header-brand">
           <a
             class="header-portal-link"
-            href="../m.html"
+            href="/mobile/login/#/menu"
             aria-label="PORTAL"
           >
             <span class="header-icon-ring header-icon-ring--52">
