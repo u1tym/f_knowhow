@@ -73,20 +73,21 @@ export async function fetchKnowhowDetail(id: number): Promise<KnowhowDetail> {
   return requestJson<KnowhowDetail>(`/knowhows/${id}`)
 }
 
-/**
- * 仕様書（SPECIFICATION_JA.md）にはノウハウ作成のエンドポイントが未定義。
- * 慣例として POST /middle-categories/{id}/knowhows を試行する。バックエンド未対応の場合は 404/405 などとなる。
- */
 export async function createKnowhow(
-  middleCategoryId: number,
-  payload: { title: string; keywords?: string; content: string },
+  payload: {
+    title: string
+    keywords?: string | null
+    content: string
+    middle_category_id?: number | null
+  },
 ): Promise<KnowhowDetail> {
-  return requestJson<KnowhowDetail>(`/middle-categories/${middleCategoryId}/knowhows`, {
+  return requestJson<KnowhowDetail>('/knowhows', {
     method: 'POST',
     body: JSON.stringify({
       title: payload.title.trim(),
       keywords: payload.keywords?.trim() || null,
-      content: payload.content,
+      content: payload.content.trim(),
+      middle_category_id: payload.middle_category_id ?? null,
     }),
   })
 }

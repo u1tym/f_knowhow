@@ -202,15 +202,16 @@ async function submitMiddle() {
 async function submitKnowhow() {
   const middleId = Number(selectedMiddleId.value)
   const title = formKnowhowTitle.value.trim()
-  const content = formKnowhowContent.value
+  const content = formKnowhowContent.value.trim()
   if (!title || !content.trim() || Number.isNaN(middleId)) return
   formSubmitting.value = true
   errorMessage.value = null
   try {
-    const created = await createKnowhow(middleId, {
+    const created = await createKnowhow({
       title,
       keywords: formKnowhowKeywords.value,
       content,
+      middle_category_id: middleId,
     })
     await loadKnowhowsList(middleId)
     selectedKnowhowId.value = String(created.id)
@@ -410,10 +411,6 @@ async function submitKnowhow() {
         </template>
         <template v-else-if="modal === 'knowhow'">
           <h2 class="modal-title">ノウハウを追加</h2>
-          <p class="modal-note">
-            作成 API は仕様書に未定義のため、POST
-            /middle-categories/{id}/knowhows を呼び出します。未実装のサーバーではエラーになります。
-          </p>
           <label class="label" for="inp-k-title">タイトル</label>
           <input id="inp-k-title" v-model="formKnowhowTitle" class="input" type="text" autocomplete="off" />
           <label class="label" for="inp-k-kw">キーワード（任意）</label>
