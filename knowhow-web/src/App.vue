@@ -9,6 +9,7 @@ import {
   fetchKnowhows,
   fetchMajorCategories,
   fetchMiddleCategories,
+  updateKnowhow,
 } from './api/knowhow-api'
 import type { KnowhowDetail, KnowhowListItem, MajorCategory, MiddleCategory } from './api/types'
 /** public/images 配下。BASE_URL 対応 */
@@ -36,6 +37,8 @@ const formKnowhowTitle = ref('')
 const formKnowhowKeywords = ref('')
 const formKnowhowContent = ref('')
 const formSubmitting = ref(false)
+/** ノウハウモーダル: null なら新規、数値なら該当 ID を更新 */
+const editingKnowhowId = ref<number | null>(null)
 
 const majorDisabled = computed(() => busyMajors.value)
 const middleDisabled = computed(() => !selectedMajorId.value || busyMiddles.value)
@@ -159,10 +162,25 @@ function openModal(which: 'major' | 'middle' | 'knowhow') {
   formKnowhowTitle.value = ''
   formKnowhowKeywords.value = ''
   formKnowhowContent.value = ''
+  if (which === 'knowhow') {
+    editingKnowhowId.value = null
+  }
+}
+
+function openKnowhowEdit() {
+  const d = detail.value
+  if (!d) return
+  errorMessage.value = null
+  editingKnowhowId.value = d.id
+  modal.value = 'knowhow'
+  formKnowhowTitle.value = d.title
+  formKnowhowKeywords.value = d.keywords ?? ''
+  formKnowhowContent.value = d.content
 }
 
 function closeModal() {
   modal.value = null
+  editingKnowhowId.value = null
 }
 
 async function submitMajor() {
@@ -204,18 +222,32 @@ async function submitKnowhow() {
   const title = formKnowhowTitle.value.trim()
   const content = formKnowhowContent.value.trim()
   if (!title || !content.trim() || Number.isNaN(middleId)) return
+  const keywords = formKnowhowKeywords.value.trim() || null
   formSubmitting.value = true
   errorMessage.value = null
   try {
-    const created = await createKnowhow({
-      title,
-      keywords: formKnowhowKeywords.value,
-      content,
-      middle_category_id: middleId,
-    })
-    await loadKnowhowsList(middleId)
-    selectedKnowhowId.value = String(created.id)
-    detail.value = created
+    const editId = editingKnowhowId.value
+    if (editId != null) {
+      const updated = await updateKnowhow(editId, {
+        title,
+        keywords,
+        content,
+        middle_category_id: middleId,
+      })
+      await loadKnowhowsList(middleId)
+      selectedKnowhowId.value = String(updated.id)
+      detail.value = updated
+    } else {
+      const created = await createKnowhow({
+        title,
+        keywords,
+        content,
+        middle_category_id: middleId,
+      })
+      await loadKnowhowsList(middleId)
+      selectedKnowhowId.value = String(created.id)
+      detail.value = created
+    }
     closeModal()
   } catch (e) {
     setError(e)
@@ -357,7 +389,18 @@ async function submitKnowhow() {
     </section>
 
     <article v-if="detail" class="detail">
-      <h2 class="detail-title">{{ detail.title }}</h2>
+      <div class="detail-header">
+        <h2 class="detail-title">{{ detail.title }}</h2>
+        <button
+          type="button"
+          class="btn-edit"
+          aria-label="ノウハウを編集"
+          :disabled="busyDetail"
+          @click="openKnowhowEdit"
+        >
+          編集
+        </button>
+      </div>
       <dl class="meta">
         <dt>キーワード</dt>
         <dd>{{ detail.keywords || '—' }}</dd>
@@ -410,7 +453,9 @@ async function submitKnowhow() {
           </div>
         </template>
         <template v-else-if="modal === 'knowhow'">
-          <h2 class="modal-title">ノウハウを追加</h2>
+          <h2 class="modal-title">
+            {{ editingKnowhowId != null ? 'ノウハウを編集' : 'ノウハウを追加' }}
+          </h2>
           <label class="label" for="inp-k-title">タイトル</label>
           <input id="inp-k-title" v-model="formKnowhowTitle" class="input" type="text" autocomplete="off" />
           <label class="label" for="inp-k-kw">キーワード（任意）</label>
@@ -425,7 +470,7 @@ async function submitKnowhow() {
               :disabled="formSubmitting || !formKnowhowTitle.trim() || !formKnowhowContent.trim()"
               @click="submitKnowhow"
             >
-              追加
+              {{ editingKnowhowId != null ? '更新' : '追加' }}
             </button>
           </div>
         </template>
@@ -621,10 +666,44 @@ async function submitKnowhow() {
   background: var(--kh-surface);
 }
 
+.detail-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
 .detail-title {
   font-size: 1.1rem;
-  margin: 0 0 0.75rem;
+  margin: 0;
   line-height: 1.35;
+  flex: 1;
+  min-width: 0;
+  word-break: break-word;
+}
+
+.btn-edit {
+  flex-shrink: 0;
+  min-height: 36px;
+  padding: 0 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: 8px;
+  border: 1px solid var(--kh-border);
+  background: var(--kh-surface);
+  color: var(--kh-accent);
+  cursor: pointer;
+}
+
+.btn-edit:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-edit:focus-visible {
+  outline: 2px solid var(--kh-accent);
+  outline-offset: 2px;
 }
 
 .meta {

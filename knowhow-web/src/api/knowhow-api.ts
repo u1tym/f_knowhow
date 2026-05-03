@@ -91,3 +91,23 @@ export async function createKnowhow(
     }),
   })
 }
+
+export async function updateKnowhow(
+  knowhowId: number,
+  payload: {
+    title: string
+    keywords: string | null
+    content: string
+    middle_category_id: number | null
+  },
+): Promise<KnowhowDetail> {
+  return requestJson<KnowhowDetail>(`/knowhows/${knowhowId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({
+      title: payload.title.trim(),
+      keywords: payload.keywords?.trim() || null,
+      content: payload.content.trim(),
+      middle_category_id: payload.middle_category_id,
+    }),
+  })
+}
