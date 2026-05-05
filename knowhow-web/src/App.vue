@@ -485,6 +485,10 @@ async function submitKnowhow() {
   margin: 0 auto;
   padding: 0.75rem 1rem 2rem;
   min-height: 100dvh;
+  height: 100dvh;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
   box-sizing: border-box;
 }
 
