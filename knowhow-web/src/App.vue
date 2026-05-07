@@ -319,59 +319,61 @@ async function submitKnowhow() {
     </p>
 
     <template v-if="!detail">
-      <section class="field">
-        <div class="row">
-          <select
-            id="major-select"
-            v-model="selectedMajorId"
-            class="select"
-            :class="{ 'select--empty': selectedMajorId === '' }"
-            :disabled="majorDisabled"
-            aria-label="大項目"
-          >
-            <option value="" disabled hidden>大項目</option>
-            <option v-for="m in majors" :key="m.id" :value="String(m.id)">
-              {{ m.name }}
-            </option>
-          </select>
-          <button
-            type="button"
-            class="icon-btn"
-            aria-label="大項目を追加"
-            :disabled="majorDisabled"
-            @click="openModal('major')"
-          >
-            ＋
-          </button>
-        </div>
-      </section>
+      <div class="browse-filters-sticky">
+        <section class="field field--browse-filter">
+          <div class="row">
+            <select
+              id="major-select"
+              v-model="selectedMajorId"
+              class="select"
+              :class="{ 'select--empty': selectedMajorId === '' }"
+              :disabled="majorDisabled"
+              aria-label="大項目"
+            >
+              <option value="" disabled hidden>大項目</option>
+              <option v-for="m in majors" :key="m.id" :value="String(m.id)">
+                {{ m.name }}
+              </option>
+            </select>
+            <button
+              type="button"
+              class="icon-btn"
+              aria-label="大項目を追加"
+              :disabled="majorDisabled"
+              @click="openModal('major')"
+            >
+              ＋
+            </button>
+          </div>
+        </section>
 
-      <section class="field">
-        <div class="row">
-          <select
-            id="middle-select"
-            v-model="selectedMiddleId"
-            class="select"
-            :class="{ 'select--empty': selectedMiddleId === '' }"
-            :disabled="middleDisabled"
-            aria-label="中項目"
-          >
-            <option value="" disabled hidden>中項目</option>
-            <option v-for="m in middles" :key="m.id" :value="String(m.id)">
-              {{ m.name }}
-            </option>
-          </select>
-          <button
-            type="button"
-            class="icon-btn"
-            aria-label="中項目を追加"
-            :disabled="middleDisabled"
-            @click="openModal('middle')"
-          >
-            ＋
-          </button>
-        </div>
-      </section>
+        <section class="field field--browse-filter">
+          <div class="row">
+            <select
+              id="middle-select"
+              v-model="selectedMiddleId"
+              class="select"
+              :class="{ 'select--empty': selectedMiddleId === '' }"
+              :disabled="middleDisabled"
+              aria-label="中項目"
+            >
+              <option value="" disabled hidden>中項目</option>
+              <option v-for="m in middles" :key="m.id" :value="String(m.id)">
+                {{ m.name }}
+              </option>
+            </select>
+            <button
+              type="button"
+              class="icon-btn"
+              aria-label="中項目を追加"
+              :disabled="middleDisabled"
+              @click="openModal('middle')"
+            >
+              ＋
+            </button>
+          </div>
+        </section>
+      </div>
 
       <section v-if="selectedMiddleId" class="field field--knowhow-list">
         <div class="row row--align-start">
@@ -618,6 +620,25 @@ async function submitKnowhow() {
 
 .field {
   margin-bottom: 1rem;
+}
+
+.field--browse-filter {
+  margin-bottom: 0.65rem;
+}
+
+.field--browse-filter:last-child {
+  margin-bottom: 0;
+}
+
+/* ノウハウ一覧を長くスクロールしても大項目・中項目を常に操作できるようにする */
+.browse-filters-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  margin: 0 -1rem 0.75rem;
+  padding: 0.35rem 1rem 0.65rem;
+  background: #f4f5f7;
+  box-shadow: 0 1px 0 var(--kh-border);
 }
 
 .label {
