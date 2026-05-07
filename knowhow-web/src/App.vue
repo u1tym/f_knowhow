@@ -318,8 +318,8 @@ async function submitKnowhow() {
       読み込み中…
     </p>
 
-    <template v-if="!detail">
-      <div class="browse-filters-sticky">
+    <div v-if="!detail" class="browse-shell">
+      <div class="browse-filters">
         <section class="field field--browse-filter">
           <div class="row">
             <select
@@ -375,39 +375,37 @@ async function submitKnowhow() {
         </section>
       </div>
 
-      <section v-if="selectedMiddleId" class="field field--knowhow-list">
-        <div class="row row--align-start">
-          <div class="knowhow-list-wrap">
-            <p v-if="!busyKnowhowList && knowhowList.length === 0" class="knowhow-list-empty">
-              この中項目にはノウハウがありません。
-            </p>
-            <ul v-else class="knowhow-list" aria-label="ノウハウ一覧">
-              <li v-for="k in knowhowList" :key="k.id" class="knowhow-list__item">
-                <button
-                  type="button"
-                  class="knowhow-list__btn"
-                  :disabled="busyKnowhowList"
-                  @click="selectedKnowhowId = String(k.id)"
-                >
-                  {{ k.title }}
-                </button>
-              </li>
-            </ul>
-          </div>
-          <button
-            type="button"
-            class="icon-btn"
-            aria-label="ノウハウを追加"
-            :disabled="knowhowListActionsDisabled"
-            @click="openModal('knowhow')"
-          >
-            ＋
-          </button>
+      <div v-if="selectedMiddleId" class="browse-list-panel">
+        <div class="browse-list-scroll">
+          <p v-if="!busyKnowhowList && knowhowList.length === 0" class="knowhow-list-empty">
+            この中項目にはノウハウがありません。
+          </p>
+          <ul v-else class="knowhow-list" aria-label="ノウハウ一覧">
+            <li v-for="k in knowhowList" :key="k.id" class="knowhow-list__item">
+              <button
+                type="button"
+                class="knowhow-list__btn"
+                :disabled="busyKnowhowList"
+                @click="selectedKnowhowId = String(k.id)"
+              >
+                {{ k.title }}
+              </button>
+            </li>
+          </ul>
         </div>
-      </section>
-    </template>
+        <button
+          type="button"
+          class="icon-btn icon-btn--browse-add"
+          aria-label="ノウハウを追加"
+          :disabled="knowhowListActionsDisabled"
+          @click="openModal('knowhow')"
+        >
+          ＋
+        </button>
+      </div>
+    </div>
 
-    <article v-if="detail" class="detail">
+    <article v-if="detail" class="detail detail--scroll">
       <button type="button" class="btn-back" @click="backToKnowhowList">一覧に戻る</button>
       <div class="detail-header">
         <h2 class="detail-title">{{ detail.title }}</h2>
@@ -501,18 +499,19 @@ async function submitKnowhow() {
 
 <style scoped>
 .app {
+  display: flex;
+  flex-direction: column;
   max-width: 32rem;
   margin: 0 auto;
   padding: 0.75rem 1rem 2rem;
   min-height: 100dvh;
   height: 100dvh;
-  overflow-y: auto;
-  overscroll-behavior-y: contain;
-  -webkit-overflow-scrolling: touch;
+  overflow: hidden;
   box-sizing: border-box;
 }
 
 .header {
+  flex-shrink: 0;
   margin-bottom: 1rem;
 }
 
@@ -604,6 +603,7 @@ async function submitKnowhow() {
 }
 
 .error {
+  flex-shrink: 0;
   background: #fde8e8;
   color: #9b1c1c;
   padding: 0.6rem 0.75rem;
@@ -613,6 +613,7 @@ async function submitKnowhow() {
 }
 
 .loading {
+  flex-shrink: 0;
   font-size: 0.875rem;
   color: var(--kh-muted);
   margin: 0 0 0.75rem;
@@ -630,15 +631,38 @@ async function submitKnowhow() {
   margin-bottom: 0;
 }
 
-/* ノウハウ一覧を長くスクロールしても大項目・中項目を常に操作できるようにする */
-.browse-filters-sticky {
-  position: sticky;
-  top: 0;
-  z-index: 3;
-  margin: 0 -1rem 0.75rem;
-  padding: 0.35rem 1rem 0.65rem;
-  background: #f4f5f7;
-  box-shadow: 0 1px 0 var(--kh-border);
+.browse-shell {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.browse-filters {
+  flex-shrink: 0;
+}
+
+.browse-list-panel {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 0.5rem;
+}
+
+.browse-list-scroll {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 0.25rem;
+}
+
+.icon-btn--browse-add {
+  align-self: flex-start;
 }
 
 .label {
@@ -653,10 +677,6 @@ async function submitKnowhow() {
   display: flex;
   gap: 0.5rem;
   align-items: stretch;
-}
-
-.row--align-start {
-  align-items: flex-start;
 }
 
 .select {
@@ -703,11 +723,6 @@ async function submitKnowhow() {
 .icon-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
-}
-
-.knowhow-list-wrap {
-  flex: 1;
-  min-width: 0;
 }
 
 .knowhow-list-empty {
@@ -770,6 +785,15 @@ async function submitKnowhow() {
   border: 1px solid var(--kh-border);
   border-radius: 10px;
   background: var(--kh-surface);
+}
+
+.detail--scroll {
+  flex: 1;
+  min-height: 0;
+  margin-top: 0.75rem;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .btn-back {
