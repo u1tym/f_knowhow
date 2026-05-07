@@ -28,3 +28,13 @@ export interface KnowhowListItem {
 export interface KnowhowDetail extends KnowhowListItem {
   content: string
 }
+
+export interface KnowhowSearchResultItem {
+  major_category_id: number | null
+  major_category_name: string | null
+  middle_category_id: number | null
+  middle_category_name: string | null
+  knowhow_id: number
+  title: string
+  display_order: number
+}

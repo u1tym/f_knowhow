@@ -9,9 +9,16 @@ import {
   fetchKnowhows,
   fetchMajorCategories,
   fetchMiddleCategories,
+  searchKnowhowsByKeywords,
   updateKnowhow,
 } from './api/knowhow-api'
-import type { KnowhowDetail, KnowhowListItem, MajorCategory, MiddleCategory } from './api/types'
+import type {
+  KnowhowDetail,
+  KnowhowListItem,
+  KnowhowSearchResultItem,
+  MajorCategory,
+  MiddleCategory,
+} from './api/types'
 /** public/images 配下。BASE_URL 対応 */
 const headerImg = (file: string) => `${import.meta.env.BASE_URL}images/${file}`
 
@@ -27,8 +34,14 @@ const detail = ref<KnowhowDetail | null>(null)
 const busyMajors = ref(false)
 const busyMiddles = ref(false)
 const busyKnowhowList = ref(false)
+const busyKeywordSearch = ref(false)
 const busyDetail = ref(false)
 const errorMessage = ref<string | null>(null)
+const keywordQuery = ref('')
+const searchedKnowhowList = ref<KnowhowSearchResultItem[]>([])
+const keywordSearchExecuted = ref(false)
+const detailMajorName = ref('')
+const detailMiddleName = ref('')
 
 const modal = ref<'major' | 'middle' | 'knowhow' | null>(null)
 const formMajorName = ref('')
@@ -43,6 +56,15 @@ const editingKnowhowId = ref<number | null>(null)
 const majorDisabled = computed(() => busyMajors.value)
 const middleDisabled = computed(() => !selectedMajorId.value || busyMiddles.value)
 const knowhowListActionsDisabled = computed(() => !selectedMiddleId.value || busyKnowhowList.value)
+const keywordTerms = computed(() =>
+  keywordQuery.value
+    .trim()
+    .split(/[,\uFF0C]+/)
+    .map((v) => v.trim())
+    .filter(Boolean),
+)
+const keywordSearchMode = computed(() => keywordTerms.value.length > 0)
+const searchingBusy = computed(() => busyKnowhowList.value || busyKeywordSearch.value)
 
 const selectedMajorName = computed(
   () => majors.value.find((m) => String(m.id) === selectedMajorId.value)?.name ?? '',
@@ -114,6 +136,23 @@ async function loadKnowhowsList(middleId: number) {
   }
 }
 
+async function loadKnowhowsByKeywords(keywords: string[]) {
+  if (keywords.length === 0) {
+    searchedKnowhowList.value = []
+    return
+  }
+  busyKeywordSearch.value = true
+  errorMessage.value = null
+  try {
+    searchedKnowhowList.value = await searchKnowhowsByKeywords(keywords)
+  } catch (e) {
+    setError(e)
+    searchedKnowhowList.value = []
+  } finally {
+    busyKeywordSearch.value = false
+  }
+}
+
 async function loadDetail(id: number) {
   busyDetail.value = true
   errorMessage.value = null
@@ -128,6 +167,7 @@ async function loadDetail(id: number) {
 }
 
 watch(selectedMajorId, async (v) => {
+  if (keywordSearchMode.value) return
   selectedMiddleId.value = ''
   selectedKnowhowId.value = ''
   detail.value = null
@@ -140,6 +180,7 @@ watch(selectedMajorId, async (v) => {
 })
 
 watch(selectedMiddleId, async (v) => {
+  if (keywordSearchMode.value) return
   selectedKnowhowId.value = ''
   detail.value = null
   knowhowList.value = []
@@ -157,12 +198,40 @@ watch(selectedKnowhowId, async (v) => {
   await loadDetail(id)
 })
 
+function clearKeywordSearch() {
+  keywordSearchExecuted.value = false
+  searchedKnowhowList.value = []
+}
+
+async function submitKeywordSearch() {
+  selectedKnowhowId.value = ''
+  detail.value = null
+  keywordSearchExecuted.value = true
+  if (keywordTerms.value.length === 0) {
+    searchedKnowhowList.value = []
+    return
+  }
+  await loadKnowhowsByKeywords(keywordTerms.value)
+}
+
 onMounted(() => {
   void loadMajors()
 })
 
 function backToKnowhowList() {
   selectedKnowhowId.value = ''
+}
+
+function openKnowhowFromCategoryList(item: KnowhowListItem) {
+  detailMajorName.value = selectedMajorName.value
+  detailMiddleName.value = selectedMiddleName.value
+  selectedKnowhowId.value = String(item.id)
+}
+
+function openKnowhowFromKeywordSearch(item: KnowhowSearchResultItem) {
+  detailMajorName.value = item.major_category_name ?? ''
+  detailMiddleName.value = item.middle_category_name ?? ''
+  selectedKnowhowId.value = String(item.knowhow_id)
 }
 
 function openModal(which: 'major' | 'middle' | 'knowhow') {
@@ -246,6 +315,8 @@ async function submitKnowhow() {
         middle_category_id: middleId,
       })
       await loadKnowhowsList(middleId)
+      detailMajorName.value = selectedMajorName.value
+      detailMiddleName.value = selectedMiddleName.value
       selectedKnowhowId.value = String(updated.id)
       detail.value = updated
     } else {
@@ -256,6 +327,8 @@ async function submitKnowhow() {
         middle_category_id: middleId,
       })
       await loadKnowhowsList(middleId)
+      detailMajorName.value = selectedMajorName.value
+      detailMiddleName.value = selectedMiddleName.value
       selectedKnowhowId.value = String(created.id)
       detail.value = created
     }
@@ -314,12 +387,32 @@ async function submitKnowhow() {
     </header>
 
     <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
-    <p v-if="busyMajors || busyMiddles || busyKnowhowList || busyDetail" class="loading">
+    <p v-if="busyMajors || busyMiddles || busyKnowhowList || busyKeywordSearch || busyDetail" class="loading">
       読み込み中…
     </p>
 
     <div v-if="!detail" class="browse-shell">
       <div class="browse-filters">
+        <section class="field field--browse-filter">
+          <form class="keyword-search-form" @submit.prevent="submitKeywordSearch">
+            <label class="label" for="keyword-search">キーワード検索</label>
+            <div class="row">
+              <input
+                id="keyword-search"
+                v-model="keywordQuery"
+                class="search-input"
+                type="text"
+                autocomplete="off"
+                placeholder="キーワードを入力（複数はカンマ区切り）"
+                aria-label="キーワード検索"
+                @input="clearKeywordSearch"
+              />
+              <button type="submit" class="btn-search" :disabled="busyKeywordSearch">検索</button>
+            </div>
+          </form>
+        </section>
+
+        <template v-if="!keywordSearchMode">
         <section class="field field--browse-filter">
           <div class="row">
             <select
@@ -373,20 +466,45 @@ async function submitKnowhow() {
             </button>
           </div>
         </section>
+        </template>
       </div>
 
-      <div v-if="selectedMiddleId" class="browse-list-panel">
+      <div v-if="keywordSearchMode || selectedMiddleId || keywordSearchExecuted" class="browse-list-panel">
         <div class="browse-list-scroll">
-          <p v-if="!busyKnowhowList && knowhowList.length === 0" class="knowhow-list-empty">
+          <p
+            v-if="keywordSearchExecuted && !busyKeywordSearch && searchedKnowhowList.length === 0"
+            class="knowhow-list-empty"
+          >
+            キーワードに一致するノウハウがありません。
+          </p>
+          <p
+            v-else-if="!keywordSearchMode && !busyKnowhowList && knowhowList.length === 0"
+            class="knowhow-list-empty"
+          >
             この中項目にはノウハウがありません。
           </p>
+          <ul v-else-if="keywordSearchExecuted" class="knowhow-list" aria-label="検索結果一覧">
+            <li v-for="k in searchedKnowhowList" :key="k.knowhow_id" class="knowhow-list__item">
+              <button
+                type="button"
+                class="knowhow-list__btn"
+                :disabled="searchingBusy"
+                @click="openKnowhowFromKeywordSearch(k)"
+              >
+                {{ k.title }}
+                <span class="knowhow-list__meta">
+                  {{ k.major_category_name ?? '未分類' }} / {{ k.middle_category_name ?? '未分類' }}
+                </span>
+              </button>
+            </li>
+          </ul>
           <ul v-else class="knowhow-list" aria-label="ノウハウ一覧">
             <li v-for="k in knowhowList" :key="k.id" class="knowhow-list__item">
               <button
                 type="button"
                 class="knowhow-list__btn"
-                :disabled="busyKnowhowList"
-                @click="selectedKnowhowId = String(k.id)"
+                :disabled="searchingBusy"
+                @click="openKnowhowFromCategoryList(k)"
               >
                 {{ k.title }}
               </button>
@@ -394,6 +512,7 @@ async function submitKnowhow() {
           </ul>
         </div>
         <button
+          v-if="!keywordSearchMode"
           type="button"
           class="icon-btn icon-btn--browse-add"
           aria-label="ノウハウを追加"
@@ -421,9 +540,9 @@ async function submitKnowhow() {
       </div>
       <dl class="meta">
         <dt>大項目</dt>
-        <dd>{{ selectedMajorName || '—' }}</dd>
+        <dd>{{ detailMajorName || '—' }}</dd>
         <dt>中項目</dt>
-        <dd>{{ selectedMiddleName || '—' }}</dd>
+        <dd>{{ detailMiddleName || '—' }}</dd>
         <dt>キーワード</dt>
         <dd>{{ detail.keywords || '—' }}</dd>
       </dl>
@@ -631,6 +750,42 @@ async function submitKnowhow() {
   margin-bottom: 0;
 }
 
+.search-input {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  min-height: 44px;
+  padding: 0.5rem 0.6rem;
+  font-size: 1rem;
+  border: 1px solid var(--kh-border);
+  border-radius: 8px;
+  background: var(--kh-surface);
+  color: inherit;
+}
+
+.keyword-search-form {
+  margin: 0;
+}
+
+.btn-search {
+  flex-shrink: 0;
+  min-width: 4.5rem;
+  min-height: 44px;
+  padding: 0 0.8rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border-radius: 8px;
+  border: 1px solid var(--kh-border);
+  background: var(--kh-accent-soft);
+  color: var(--kh-accent);
+  cursor: pointer;
+}
+
+.btn-search:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .browse-shell {
   flex: 1;
   min-height: 0;
@@ -763,6 +918,13 @@ async function submitKnowhow() {
   word-break: break-word;
   line-height: 1.35;
   -webkit-tap-highlight-color: transparent;
+}
+
+.knowhow-list__meta {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.8rem;
+  color: var(--kh-muted);
 }
 
 .knowhow-list__btn:hover:not(:disabled) {

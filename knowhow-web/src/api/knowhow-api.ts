@@ -1,5 +1,11 @@
 import { knowhowApiBaseUrl } from '../config/knowhow-api.config'
-import type { KnowhowDetail, KnowhowListItem, MajorCategory, MiddleCategory } from './types'
+import type {
+  KnowhowDetail,
+  KnowhowListItem,
+  KnowhowSearchResultItem,
+  MajorCategory,
+  MiddleCategory,
+} from './types'
 
 export class KnowhowApiError extends Error {
   constructor(
@@ -71,6 +77,17 @@ export async function fetchKnowhows(middleId: number): Promise<KnowhowListItem[]
 
 export async function fetchKnowhowDetail(id: number): Promise<KnowhowDetail> {
   return requestJson<KnowhowDetail>(`/knowhows/${id}`)
+}
+
+export async function searchKnowhowsByKeywords(
+  keywords: string[],
+): Promise<KnowhowSearchResultItem[]> {
+  const normalized = keywords.map((k) => k.trim()).filter(Boolean)
+  const qs = new URLSearchParams()
+  for (const keyword of normalized) {
+    qs.append('keyword', keyword)
+  }
+  return requestJson<KnowhowSearchResultItem[]>(`/knowhows/search?${qs.toString()}`)
 }
 
 export async function createKnowhow(
