@@ -1,0 +1,4 @@
+各APIを呼び出す前に、/refreshを呼び出すように修正して。
+/refreshのAPIの基点は、VITE_LOGIN_API_BASE_URLから取得して。
+APIの詳細は、API_LOGIN_SPEC.mdを参照して。
+不明点は聞いて。

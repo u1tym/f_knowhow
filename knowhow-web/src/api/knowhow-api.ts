@@ -1,4 +1,5 @@
 import { knowhowApiBaseUrl } from '../config/knowhow-api.config'
+import { loginApiBaseUrl } from '../config/login-api.config'
 import type {
   KnowhowDetail,
   KnowhowListItem,
@@ -19,9 +20,11 @@ export class KnowhowApiError extends Error {
 }
 
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
+  await refreshAccessToken()
   const url = `${knowhowApiBaseUrl}${path.startsWith('/') ? path : `/${path}`}`
   const res = await fetch(url, {
     ...init,
+    credentials: 'include',
     headers: {
       Accept: 'application/json',
       'Content-Type': 'application/json',
@@ -44,6 +47,24 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   } catch {
     throw new KnowhowApiError('レスポンスの JSON が不正です', res.status, text)
   }
+}
+
+async function refreshAccessToken(): Promise<void> {
+  const refreshUrl = `${loginApiBaseUrl}/refresh`
+  const res = await fetch(refreshUrl, {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      Accept: 'application/json',
+    },
+  })
+  if (res.ok) return
+  const text = await res.text()
+  throw new KnowhowApiError(
+    `HTTP ${res.status}: セッション更新に失敗しました`,
+    res.status,
+    text || undefined,
+  )
 }
 
 export async function fetchMajorCategories(): Promise<MajorCategory[]> {
