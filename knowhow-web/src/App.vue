@@ -203,6 +203,11 @@ function clearKeywordSearch() {
   searchedKnowhowList.value = []
 }
 
+function clearKeywordInput() {
+  keywordQuery.value = ''
+  clearKeywordSearch()
+}
+
 async function submitKeywordSearch() {
   selectedKnowhowId.value = ''
   detail.value = null
@@ -407,7 +412,28 @@ async function submitKnowhow() {
                 aria-label="キーワード検索"
                 @input="clearKeywordSearch"
               />
-              <button type="submit" class="btn-search" :disabled="busyKeywordSearch">検索</button>
+              <button type="submit" class="btn-icon" :disabled="busyKeywordSearch" aria-label="検索">
+                <svg class="btn-icon__svg" viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    d="M10.5 4a6.5 6.5 0 1 0 4.03 11.6l4.44 4.44a1 1 0 0 0 1.41-1.41l-4.43-4.43A6.5 6.5 0 0 0 10.5 4zm0 2a4.5 4.5 0 1 1 0 9 4.5 4.5 0 0 1 0-9z"
+                    fill="currentColor"
+                  />
+                </svg>
+              </button>
+              <button
+                type="button"
+                class="btn-icon"
+                :disabled="busyKeywordSearch || (!keywordQuery.trim() && !keywordSearchExecuted)"
+                aria-label="キーワードをクリア"
+                @click="clearKeywordInput"
+              >
+                <svg class="btn-icon__svg" viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    d="M3 15.2a1 1 0 0 1 .3-.71l7.2-7.2A1 1 0 0 1 11.2 7h7.6a1 1 0 0 1 .98 1.2l-1.4 7A1 1 0 0 1 17.38 16H4a1 1 0 0 1-1-1v-.8zm8.61-6.2L5 15h11.56l1-5h-5.95zM10 10.5a1 1 0 0 0 0 2h3a1 1 0 1 0 0-2h-3z"
+                    fill="currentColor"
+                  />
+                </svg>
+              </button>
             </div>
           </form>
         </section>
@@ -767,23 +793,29 @@ async function submitKnowhow() {
   margin: 0;
 }
 
-.btn-search {
+.btn-icon {
   flex-shrink: 0;
-  min-width: 4.5rem;
+  width: 44px;
   min-height: 44px;
-  padding: 0 0.8rem;
-  font-size: 0.95rem;
-  font-weight: 600;
+  padding: 0;
   border-radius: 8px;
   border: 1px solid var(--kh-border);
   background: var(--kh-accent-soft);
   color: var(--kh-accent);
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.btn-search:disabled {
+.btn-icon:disabled {
   opacity: 0.45;
   cursor: not-allowed;
+}
+
+.btn-icon__svg {
+  width: 22px;
+  height: 22px;
 }
 
 .browse-shell {
