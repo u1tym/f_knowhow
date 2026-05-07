@@ -11,6 +11,7 @@ import {
   fetchMiddleCategories,
   searchKnowhowsByKeywords,
   swapKnowhowDisplayOrder,
+  deleteKnowhow,
   updateKnowhow,
 } from './api/knowhow-api'
 import type {
@@ -272,6 +273,24 @@ async function moveKnowhow(itemId: number, direction: 'up' | 'down') {
   errorMessage.value = null
   try {
     await swapKnowhowDisplayOrder(itemId, target.id)
+    await loadKnowhowsList(middleId)
+  } catch (e) {
+    setError(e)
+  } finally {
+    busyReorder.value = false
+  }
+}
+
+async function removeKnowhow(item: KnowhowListItem) {
+  const middleId = Number(selectedMiddleId.value)
+  if (Number.isNaN(middleId)) return
+  const confirmed = window.confirm(`「${item.title}」を削除します。よろしいですか？`)
+  if (!confirmed) return
+
+  busyReorder.value = true
+  errorMessage.value = null
+  try {
+    await deleteKnowhow(item.id)
     await loadKnowhowsList(middleId)
   } catch (e) {
     setError(e)
@@ -600,7 +619,9 @@ async function submitKnowhow() {
                     :disabled="searchingBusy || knowhowList[0]?.id === k.id"
                     @click="moveKnowhow(k.id, 'up')"
                   >
-                    ↑
+                    <svg class="btn-arrow__icon" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M12 4l6 7h-4v9h-4v-9H6l6-7z" fill="currentColor" />
+                    </svg>
                   </button>
                   <button
                     type="button"
@@ -609,7 +630,23 @@ async function submitKnowhow() {
                     :disabled="searchingBusy || knowhowList[knowhowList.length - 1]?.id === k.id"
                     @click="moveKnowhow(k.id, 'down')"
                   >
-                    ↓
+                    <svg class="btn-arrow__icon" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M12 20l-6-7h4V4h4v9h4l-6 7z" fill="currentColor" />
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    class="btn-arrow btn-arrow--danger"
+                    aria-label="削除"
+                    :disabled="searchingBusy"
+                    @click="removeKnowhow(k)"
+                  >
+                    <svg class="btn-arrow__icon" viewBox="0 0 24 24" aria-hidden="true">
+                      <path
+                        d="M9 3h6l1 2h4v2H4V5h4l1-2zm-2 6h2v9H7V9zm4 0h2v9h-2V9zm4 0h2v9h-2V9z"
+                        fill="currentColor"
+                      />
+                    </svg>
                   </button>
                 </div>
               </div>
@@ -1049,15 +1086,24 @@ async function submitKnowhow() {
   border-radius: 8px;
   background: var(--kh-surface);
   color: var(--kh-accent);
-  font-size: 1rem;
-  font-weight: 700;
-  line-height: 1;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .btn-arrow:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+.btn-arrow__icon {
+  width: 16px;
+  height: 16px;
+}
+
+.btn-arrow--danger {
+  color: #b91c1c;
 }
 
 .btn-arrow:focus-visible {

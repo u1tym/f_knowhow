@@ -141,3 +141,9 @@ export async function swapKnowhowDisplayOrder(
     }),
   })
 }
+
+export async function deleteKnowhow(knowhowId: number): Promise<void> {
+  return requestJson<void>(`/knowhows/${knowhowId}`, {
+    method: 'DELETE',
+  })
+}
