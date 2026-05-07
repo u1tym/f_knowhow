@@ -10,6 +10,7 @@ import {
   fetchMajorCategories,
   fetchMiddleCategories,
   searchKnowhowsByKeywords,
+  swapKnowhowDisplayOrder,
   updateKnowhow,
 } from './api/knowhow-api'
 import type {
@@ -35,6 +36,7 @@ const busyMajors = ref(false)
 const busyMiddles = ref(false)
 const busyKnowhowList = ref(false)
 const busyKeywordSearch = ref(false)
+const busyReorder = ref(false)
 const busyDetail = ref(false)
 const errorMessage = ref<string | null>(null)
 const keywordQuery = ref('')
@@ -52,6 +54,7 @@ const formKnowhowContent = ref('')
 const formSubmitting = ref(false)
 /** ノウハウモーダル: null なら新規、数値なら該当 ID を更新 */
 const editingKnowhowId = ref<number | null>(null)
+const reorderMode = ref(false)
 
 const majorDisabled = computed(() => busyMajors.value)
 const middleDisabled = computed(() => !selectedMajorId.value || busyMiddles.value)
@@ -64,7 +67,10 @@ const keywordTerms = computed(() =>
     .filter(Boolean),
 )
 const keywordSearchMode = computed(() => keywordTerms.value.length > 0)
-const searchingBusy = computed(() => busyKnowhowList.value || busyKeywordSearch.value)
+const searchingBusy = computed(() => busyKnowhowList.value || busyKeywordSearch.value || busyReorder.value)
+const canUseConfigButton = computed(
+  () => !!detail.value || (!!selectedMiddleId.value && !keywordSearchMode.value),
+)
 
 const selectedMajorName = computed(
   () => majors.value.find((m) => String(m.id) === selectedMajorId.value)?.name ?? '',
@@ -168,6 +174,7 @@ async function loadDetail(id: number) {
 
 watch(selectedMajorId, async (v) => {
   if (keywordSearchMode.value) return
+  reorderMode.value = false
   selectedMiddleId.value = ''
   selectedKnowhowId.value = ''
   detail.value = null
@@ -181,6 +188,7 @@ watch(selectedMajorId, async (v) => {
 
 watch(selectedMiddleId, async (v) => {
   if (keywordSearchMode.value) return
+  reorderMode.value = false
   selectedKnowhowId.value = ''
   detail.value = null
   knowhowList.value = []
@@ -199,6 +207,7 @@ watch(selectedKnowhowId, async (v) => {
 })
 
 function clearKeywordSearch() {
+  reorderMode.value = false
   keywordSearchExecuted.value = false
   searchedKnowhowList.value = []
 }
@@ -227,6 +236,15 @@ function backToKnowhowList() {
   selectedKnowhowId.value = ''
 }
 
+function onConfigClick() {
+  if (detail.value) {
+    openKnowhowEdit()
+    return
+  }
+  if (!canUseConfigButton.value) return
+  reorderMode.value = !reorderMode.value
+}
+
 function openKnowhowFromCategoryList(item: KnowhowListItem) {
   detailMajorName.value = selectedMajorName.value
   detailMiddleName.value = selectedMiddleName.value
@@ -234,9 +252,32 @@ function openKnowhowFromCategoryList(item: KnowhowListItem) {
 }
 
 function openKnowhowFromKeywordSearch(item: KnowhowSearchResultItem) {
+  reorderMode.value = false
   detailMajorName.value = item.major_category_name ?? ''
   detailMiddleName.value = item.middle_category_name ?? ''
   selectedKnowhowId.value = String(item.knowhow_id)
+}
+
+async function moveKnowhow(itemId: number, direction: 'up' | 'down') {
+  if (keywordSearchMode.value) return
+  const middleId = Number(selectedMiddleId.value)
+  if (Number.isNaN(middleId)) return
+  const idx = knowhowList.value.findIndex((k) => k.id === itemId)
+  if (idx < 0) return
+  const targetIdx = direction === 'up' ? idx - 1 : idx + 1
+  if (targetIdx < 0 || targetIdx >= knowhowList.value.length) return
+  const target = knowhowList.value[targetIdx]
+
+  busyReorder.value = true
+  errorMessage.value = null
+  try {
+    await swapKnowhowDisplayOrder(itemId, target.id)
+    await loadKnowhowsList(middleId)
+  } catch (e) {
+    setError(e)
+  } finally {
+    busyReorder.value = false
+  }
 }
 
 function openModal(which: 'major' | 'middle' | 'knowhow') {
@@ -303,10 +344,14 @@ async function submitMiddle() {
 }
 
 async function submitKnowhow() {
-  const middleId = Number(selectedMiddleId.value)
+  const currentMiddleId = detail.value?.middle_category_id ?? null
+  const selectedMiddle = selectedMiddleId.value ? Number(selectedMiddleId.value) : Number.NaN
+  const middleId = editingKnowhowId.value != null
+    ? (Number.isNaN(selectedMiddle) ? currentMiddleId : selectedMiddle)
+    : selectedMiddle
   const title = formKnowhowTitle.value.trim()
   const content = formKnowhowContent.value.trim()
-  if (!title || !content.trim() || Number.isNaN(middleId)) return
+  if (!title || !content.trim() || middleId == null || Number.isNaN(middleId)) return
   const keywords = formKnowhowKeywords.value.trim() || null
   formSubmitting.value = true
   errorMessage.value = null
@@ -319,9 +364,15 @@ async function submitKnowhow() {
         content,
         middle_category_id: middleId,
       })
-      await loadKnowhowsList(middleId)
-      detailMajorName.value = selectedMajorName.value
-      detailMiddleName.value = selectedMiddleName.value
+      if (keywordSearchExecuted.value) {
+        await loadKnowhowsByKeywords(keywordTerms.value)
+      } else {
+        await loadKnowhowsList(middleId)
+      }
+      if (!keywordSearchExecuted.value) {
+        detailMajorName.value = selectedMajorName.value
+        detailMiddleName.value = selectedMiddleName.value
+      }
       selectedKnowhowId.value = String(updated.id)
       detail.value = updated
     } else {
@@ -377,7 +428,13 @@ async function submitKnowhow() {
           </span>
           <h1 class="header-title">KNOWHOW</h1>
         </div>
-        <button type="button" class="header-config-btn" aria-label="設定">
+        <button
+          type="button"
+          class="header-config-btn"
+          :disabled="!canUseConfigButton || busyReorder || busyKeywordSearch || busyKnowhowList"
+          aria-label="設定"
+          @click="onConfigClick"
+        >
           <span class="header-icon-ring header-icon-ring--34">
             <img
               class="header-icon-img"
@@ -429,7 +486,7 @@ async function submitKnowhow() {
               >
                 <svg class="btn-icon__svg" viewBox="0 0 24 24" aria-hidden="true">
                   <path
-                    d="M3 15.2a1 1 0 0 1 .3-.71l7.2-7.2A1 1 0 0 1 11.2 7h7.6a1 1 0 0 1 .98 1.2l-1.4 7A1 1 0 0 1 17.38 16H4a1 1 0 0 1-1-1v-.8zm8.61-6.2L5 15h11.56l1-5h-5.95zM10 10.5a1 1 0 0 0 0 2h3a1 1 0 1 0 0-2h-3z"
+                    d="M17.66 3.29a1 1 0 0 1 1.41 0l1.64 1.64a1 1 0 0 1 0 1.41L10.04 17.01a1 1 0 0 1-.7.29H6.7a1 1 0 0 1-1-1v-2.64a1 1 0 0 1 .29-.7L17.66 3.29zM5 19h14a1 1 0 1 1 0 2H5a1 1 0 1 1 0-2z"
                     fill="currentColor"
                   />
                 </svg>
@@ -526,14 +583,36 @@ async function submitKnowhow() {
           </ul>
           <ul v-else class="knowhow-list" aria-label="ノウハウ一覧">
             <li v-for="k in knowhowList" :key="k.id" class="knowhow-list__item">
-              <button
-                type="button"
-                class="knowhow-list__btn"
-                :disabled="searchingBusy"
-                @click="openKnowhowFromCategoryList(k)"
-              >
-                {{ k.title }}
-              </button>
+              <div class="knowhow-list__row">
+                <button
+                  type="button"
+                  class="knowhow-list__btn"
+                  :disabled="searchingBusy"
+                  @click="openKnowhowFromCategoryList(k)"
+                >
+                  {{ k.title }}
+                </button>
+                <div v-if="reorderMode" class="reorder-actions">
+                  <button
+                    type="button"
+                    class="btn-arrow"
+                    aria-label="上へ移動"
+                    :disabled="searchingBusy || knowhowList[0]?.id === k.id"
+                    @click="moveKnowhow(k.id, 'up')"
+                  >
+                    ↑
+                  </button>
+                  <button
+                    type="button"
+                    class="btn-arrow"
+                    aria-label="下へ移動"
+                    :disabled="searchingBusy || knowhowList[knowhowList.length - 1]?.id === k.id"
+                    @click="moveKnowhow(k.id, 'down')"
+                  >
+                    ↓
+                  </button>
+                </div>
+              </div>
             </li>
           </ul>
         </div>
@@ -554,15 +633,6 @@ async function submitKnowhow() {
       <button type="button" class="btn-back" @click="backToKnowhowList">一覧に戻る</button>
       <div class="detail-header">
         <h2 class="detail-title">{{ detail.title }}</h2>
-        <button
-          type="button"
-          class="btn-edit"
-          aria-label="ノウハウを編集"
-          :disabled="busyDetail"
-          @click="openKnowhowEdit"
-        >
-          編集
-        </button>
       </div>
       <dl class="meta">
         <dt>大項目</dt>
@@ -723,6 +793,11 @@ async function submitKnowhow() {
   align-items: flex-end;
   line-height: 0;
   -webkit-tap-highlight-color: transparent;
+}
+
+.header-config-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .header-config-btn:focus-visible {
@@ -935,7 +1010,14 @@ async function submitKnowhow() {
   margin: 0;
 }
 
+.knowhow-list__row {
+  display: flex;
+  gap: 0.45rem;
+  align-items: stretch;
+}
+
 .knowhow-list__btn {
+  flex: 1;
   width: 100%;
   box-sizing: border-box;
   min-height: 44px;
@@ -950,6 +1032,37 @@ async function submitKnowhow() {
   word-break: break-word;
   line-height: 1.35;
   -webkit-tap-highlight-color: transparent;
+}
+
+.reorder-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.btn-arrow {
+  width: 44px;
+  min-height: 0;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--kh-border);
+  border-radius: 8px;
+  background: var(--kh-surface);
+  color: var(--kh-accent);
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.btn-arrow:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-arrow:focus-visible {
+  outline: 2px solid var(--kh-accent);
+  outline-offset: 1px;
 }
 
 .knowhow-list__meta {
@@ -1025,29 +1138,6 @@ async function submitKnowhow() {
   flex: 1;
   min-width: 0;
   word-break: break-word;
-}
-
-.btn-edit {
-  flex-shrink: 0;
-  min-height: 36px;
-  padding: 0 0.75rem;
-  font-size: 0.875rem;
-  font-weight: 600;
-  border-radius: 8px;
-  border: 1px solid var(--kh-border);
-  background: var(--kh-surface);
-  color: var(--kh-accent);
-  cursor: pointer;
-}
-
-.btn-edit:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.btn-edit:focus-visible {
-  outline: 2px solid var(--kh-accent);
-  outline-offset: 2px;
 }
 
 .meta {

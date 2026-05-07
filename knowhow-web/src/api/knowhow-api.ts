@@ -128,3 +128,16 @@ export async function updateKnowhow(
     }),
   })
 }
+
+export async function swapKnowhowDisplayOrder(
+  knowhowIdA: number,
+  knowhowIdB: number,
+): Promise<void> {
+  return requestJson<void>('/knowhows/swap-display-order', {
+    method: 'POST',
+    body: JSON.stringify({
+      knowhow_id_a: knowhowIdA,
+      knowhow_id_b: knowhowIdB,
+    }),
+  })
+}
