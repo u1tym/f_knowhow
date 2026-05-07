@@ -42,7 +42,14 @@ const editingKnowhowId = ref<number | null>(null)
 
 const majorDisabled = computed(() => busyMajors.value)
 const middleDisabled = computed(() => !selectedMajorId.value || busyMiddles.value)
-const knowhowSelectDisabled = computed(() => !selectedMiddleId.value || busyKnowhowList.value)
+const knowhowListActionsDisabled = computed(() => !selectedMiddleId.value || busyKnowhowList.value)
+
+const selectedMajorName = computed(
+  () => majors.value.find((m) => String(m.id) === selectedMajorId.value)?.name ?? '',
+)
+const selectedMiddleName = computed(
+  () => middles.value.find((m) => String(m.id) === selectedMiddleId.value)?.name ?? '',
+)
 
 function setError(e: unknown) {
   if (e instanceof KnowhowApiError) {
@@ -153,6 +160,10 @@ watch(selectedKnowhowId, async (v) => {
 onMounted(() => {
   void loadMajors()
 })
+
+function backToKnowhowList() {
+  selectedKnowhowId.value = ''
+}
 
 function openModal(which: 'major' | 'middle' | 'knowhow') {
   errorMessage.value = null
@@ -307,88 +318,95 @@ async function submitKnowhow() {
       読み込み中…
     </p>
 
-    <section class="field">
-      <div class="row">
-        <select
-          id="major-select"
-          v-model="selectedMajorId"
-          class="select"
-          :class="{ 'select--empty': selectedMajorId === '' }"
-          :disabled="majorDisabled"
-          aria-label="大項目"
-        >
-          <option value="" disabled hidden>大項目</option>
-          <option v-for="m in majors" :key="m.id" :value="String(m.id)">
-            {{ m.name }}
-          </option>
-        </select>
-        <button
-          type="button"
-          class="icon-btn"
-          aria-label="大項目を追加"
-          :disabled="majorDisabled"
-          @click="openModal('major')"
-        >
-          ＋
-        </button>
-      </div>
-    </section>
+    <template v-if="!detail">
+      <section class="field">
+        <div class="row">
+          <select
+            id="major-select"
+            v-model="selectedMajorId"
+            class="select"
+            :class="{ 'select--empty': selectedMajorId === '' }"
+            :disabled="majorDisabled"
+            aria-label="大項目"
+          >
+            <option value="" disabled hidden>大項目</option>
+            <option v-for="m in majors" :key="m.id" :value="String(m.id)">
+              {{ m.name }}
+            </option>
+          </select>
+          <button
+            type="button"
+            class="icon-btn"
+            aria-label="大項目を追加"
+            :disabled="majorDisabled"
+            @click="openModal('major')"
+          >
+            ＋
+          </button>
+        </div>
+      </section>
 
-    <section class="field">
-      <div class="row">
-        <select
-          id="middle-select"
-          v-model="selectedMiddleId"
-          class="select"
-          :class="{ 'select--empty': selectedMiddleId === '' }"
-          :disabled="middleDisabled"
-          aria-label="中項目"
-        >
-          <option value="" disabled hidden>中項目</option>
-          <option v-for="m in middles" :key="m.id" :value="String(m.id)">
-            {{ m.name }}
-          </option>
-        </select>
-        <button
-          type="button"
-          class="icon-btn"
-          aria-label="中項目を追加"
-          :disabled="middleDisabled"
-          @click="openModal('middle')"
-        >
-          ＋
-        </button>
-      </div>
-    </section>
+      <section class="field">
+        <div class="row">
+          <select
+            id="middle-select"
+            v-model="selectedMiddleId"
+            class="select"
+            :class="{ 'select--empty': selectedMiddleId === '' }"
+            :disabled="middleDisabled"
+            aria-label="中項目"
+          >
+            <option value="" disabled hidden>中項目</option>
+            <option v-for="m in middles" :key="m.id" :value="String(m.id)">
+              {{ m.name }}
+            </option>
+          </select>
+          <button
+            type="button"
+            class="icon-btn"
+            aria-label="中項目を追加"
+            :disabled="middleDisabled"
+            @click="openModal('middle')"
+          >
+            ＋
+          </button>
+        </div>
+      </section>
 
-    <section class="field">
-      <div class="row">
-        <select
-          id="knowhow-select"
-          v-model="selectedKnowhowId"
-          class="select"
-          :class="{ 'select--empty': selectedKnowhowId === '' }"
-          :disabled="knowhowSelectDisabled"
-          aria-label="タイトル（ノウハウ）"
-        >
-          <option value="" disabled hidden>タイトル（ノウハウ）</option>
-          <option v-for="k in knowhowList" :key="k.id" :value="String(k.id)">
-            {{ k.title }}
-          </option>
-        </select>
-        <button
-          type="button"
-          class="icon-btn"
-          aria-label="ノウハウを追加"
-          :disabled="knowhowSelectDisabled"
-          @click="openModal('knowhow')"
-        >
-          ＋
-        </button>
-      </div>
-    </section>
+      <section v-if="selectedMiddleId" class="field field--knowhow-list">
+        <div class="row row--align-start">
+          <div class="knowhow-list-wrap">
+            <p v-if="!busyKnowhowList && knowhowList.length === 0" class="knowhow-list-empty">
+              この中項目にはノウハウがありません。
+            </p>
+            <ul v-else class="knowhow-list" aria-label="ノウハウ一覧">
+              <li v-for="k in knowhowList" :key="k.id" class="knowhow-list__item">
+                <button
+                  type="button"
+                  class="knowhow-list__btn"
+                  :disabled="busyKnowhowList"
+                  @click="selectedKnowhowId = String(k.id)"
+                >
+                  {{ k.title }}
+                </button>
+              </li>
+            </ul>
+          </div>
+          <button
+            type="button"
+            class="icon-btn"
+            aria-label="ノウハウを追加"
+            :disabled="knowhowListActionsDisabled"
+            @click="openModal('knowhow')"
+          >
+            ＋
+          </button>
+        </div>
+      </section>
+    </template>
 
     <article v-if="detail" class="detail">
+      <button type="button" class="btn-back" @click="backToKnowhowList">一覧に戻る</button>
       <div class="detail-header">
         <h2 class="detail-title">{{ detail.title }}</h2>
         <button
@@ -402,12 +420,12 @@ async function submitKnowhow() {
         </button>
       </div>
       <dl class="meta">
+        <dt>大項目</dt>
+        <dd>{{ selectedMajorName || '—' }}</dd>
+        <dt>中項目</dt>
+        <dd>{{ selectedMiddleName || '—' }}</dd>
         <dt>キーワード</dt>
         <dd>{{ detail.keywords || '—' }}</dd>
-        <dt>更新日時</dt>
-        <dd>{{ detail.updated_at }}</dd>
-        <dt>作成日時</dt>
-        <dd>{{ detail.created_at }}</dd>
       </dl>
       <h3 class="content-heading">本文</h3>
       <pre class="content-body">{{ detail.content }}</pre>
@@ -616,6 +634,10 @@ async function submitKnowhow() {
   align-items: stretch;
 }
 
+.row--align-start {
+  align-items: flex-start;
+}
+
 .select {
   flex: 1;
   min-width: 0;
@@ -662,12 +684,91 @@ async function submitKnowhow() {
   cursor: not-allowed;
 }
 
+.knowhow-list-wrap {
+  flex: 1;
+  min-width: 0;
+}
+
+.knowhow-list-empty {
+  margin: 0;
+  padding: 0.65rem 0.75rem;
+  font-size: 0.9rem;
+  color: var(--kh-muted);
+  border: 1px dashed var(--kh-border);
+  border-radius: 8px;
+  line-height: 1.45;
+}
+
+.knowhow-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.knowhow-list__item {
+  margin: 0;
+}
+
+.knowhow-list__btn {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 44px;
+  padding: 0.5rem 0.65rem;
+  font-size: 1rem;
+  text-align: left;
+  border: 1px solid var(--kh-border);
+  border-radius: 8px;
+  background: var(--kh-surface);
+  color: inherit;
+  cursor: pointer;
+  word-break: break-word;
+  line-height: 1.35;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.knowhow-list__btn:hover:not(:disabled) {
+  background: var(--kh-accent-soft);
+}
+
+.knowhow-list__btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.knowhow-list__btn:focus-visible {
+  outline: 2px solid var(--kh-accent);
+  outline-offset: 2px;
+}
+
 .detail {
   margin-top: 1.25rem;
   padding: 1rem;
   border: 1px solid var(--kh-border);
   border-radius: 10px;
   background: var(--kh-surface);
+}
+
+.btn-back {
+  display: block;
+  width: 100%;
+  margin: 0 0 0.85rem;
+  min-height: 44px;
+  padding: 0 0.75rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border-radius: 8px;
+  border: 1px solid var(--kh-border);
+  background: var(--kh-surface);
+  color: var(--kh-accent);
+  cursor: pointer;
+}
+
+.btn-back:focus-visible {
+  outline: 2px solid var(--kh-accent);
+  outline-offset: 2px;
 }
 
 .detail-header {
