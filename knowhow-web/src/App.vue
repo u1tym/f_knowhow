@@ -474,21 +474,21 @@ async function submitKnowhow() {
 
     <div v-if="!detail" class="browse-shell">
       <div class="browse-filters">
-        <section class="field field--browse-filter">
+        <section class="field field--browse-filter filter-zone filter-zone--keyword">
           <form class="keyword-search-form" @submit.prevent="submitKeywordSearch">
-            <label class="label" for="keyword-search">キーワード検索</label>
+            <label class="label label--zone-keyword" for="keyword-search">キーワード検索</label>
             <div class="row">
               <input
                 id="keyword-search"
                 v-model="keywordQuery"
-                class="search-input"
+                class="search-input search-input--keyword"
                 type="text"
                 autocomplete="off"
                 placeholder="キーワードを入力（複数はカンマ区切り）"
                 aria-label="キーワード検索"
                 @input="clearKeywordSearch"
               />
-              <button type="submit" class="btn-icon" :disabled="busyKeywordSearch" aria-label="検索">
+              <button type="submit" class="btn-icon btn-icon--keyword" :disabled="busyKeywordSearch" aria-label="検索">
                 <svg class="btn-icon__svg" viewBox="0 0 24 24" aria-hidden="true">
                   <path
                     d="M10.5 4a6.5 6.5 0 1 0 4.03 11.6l4.44 4.44a1 1 0 0 0 1.41-1.41l-4.43-4.43A6.5 6.5 0 0 0 10.5 4zm0 2a4.5 4.5 0 1 1 0 9 4.5 4.5 0 0 1 0-9z"
@@ -498,7 +498,7 @@ async function submitKnowhow() {
               </button>
               <button
                 type="button"
-                class="btn-icon"
+                class="btn-icon btn-icon--keyword"
                 :disabled="busyKeywordSearch || (!keywordQuery.trim() && !keywordSearchExecuted)"
                 aria-label="キーワードをクリア"
                 @click="clearKeywordInput"
@@ -514,13 +514,14 @@ async function submitKnowhow() {
           </form>
         </section>
 
-        <template v-if="!keywordSearchMode">
-        <section class="field field--browse-filter">
+        <div v-if="!keywordSearchMode" class="filter-zone filter-zone--category">
+        <section class="field field--browse-filter field--browse-filter-in-zone">
+          <label class="label label--zone-category" for="major-select">大項目</label>
           <div class="row">
             <select
               id="major-select"
               v-model="selectedMajorId"
-              class="select"
+              class="select select--category"
               :class="{ 'select--empty': selectedMajorId === '' }"
               :disabled="majorDisabled"
               aria-label="大項目"
@@ -532,7 +533,7 @@ async function submitKnowhow() {
             </select>
             <button
               type="button"
-              class="icon-btn"
+              class="icon-btn icon-btn--category"
               aria-label="大項目を追加"
               :disabled="majorDisabled"
               @click="openModal('major')"
@@ -542,12 +543,13 @@ async function submitKnowhow() {
           </div>
         </section>
 
-        <section class="field field--browse-filter">
+        <section class="field field--browse-filter field--browse-filter-in-zone">
+          <label class="label label--zone-category" for="middle-select">中項目</label>
           <div class="row">
             <select
               id="middle-select"
               v-model="selectedMiddleId"
-              class="select"
+              class="select select--category"
               :class="{ 'select--empty': selectedMiddleId === '' }"
               :disabled="middleDisabled"
               aria-label="中項目"
@@ -559,7 +561,7 @@ async function submitKnowhow() {
             </select>
             <button
               type="button"
-              class="icon-btn"
+              class="icon-btn icon-btn--category"
               aria-label="中項目を追加"
               :disabled="middleDisabled"
               @click="openModal('middle')"
@@ -568,7 +570,7 @@ async function submitKnowhow() {
             </button>
           </div>
         </section>
-        </template>
+        </div>
       </div>
 
       <div v-if="keywordSearchMode || selectedMiddleId || keywordSearchExecuted" class="browse-list-panel">
@@ -888,6 +890,72 @@ async function submitKnowhow() {
   margin-bottom: 0;
 }
 
+.filter-zone {
+  padding: 0.65rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid transparent;
+}
+
+.filter-zone--keyword {
+  background: var(--kh-zone-keyword-bg);
+  border-color: var(--kh-zone-keyword-border);
+}
+
+.filter-zone--category {
+  background: var(--kh-zone-category-bg);
+  border-color: var(--kh-zone-category-border);
+}
+
+.field--browse-filter-in-zone {
+  margin-bottom: 0.55rem;
+}
+
+.field--browse-filter-in-zone:last-child {
+  margin-bottom: 0;
+}
+
+.label--zone-keyword {
+  color: var(--kh-zone-keyword-label);
+}
+
+.label--zone-category {
+  color: var(--kh-zone-category-label);
+}
+
+.search-input--keyword {
+  border-color: var(--kh-zone-keyword-border);
+  background: #fff;
+}
+
+.search-input--keyword:focus {
+  outline: 2px solid var(--kh-zone-keyword-accent);
+  outline-offset: 0;
+  border-color: var(--kh-zone-keyword-accent);
+}
+
+.select--category {
+  border-color: var(--kh-zone-category-border);
+  background: #fff;
+}
+
+.select--category:focus {
+  outline: 2px solid var(--kh-zone-category-accent);
+  outline-offset: 0;
+  border-color: var(--kh-zone-category-accent);
+}
+
+.btn-icon--keyword {
+  border-color: var(--kh-zone-keyword-border);
+  background: var(--kh-zone-keyword-accent-soft);
+  color: var(--kh-zone-keyword-accent);
+}
+
+.icon-btn--category {
+  border-color: var(--kh-zone-category-border);
+  background: var(--kh-zone-category-accent-soft);
+  color: var(--kh-zone-category-accent);
+}
+
 .search-input {
   flex: 1;
   min-width: 0;
@@ -940,6 +1008,14 @@ async function submitKnowhow() {
 
 .browse-filters {
   flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.browse-filters > .filter-zone,
+.browse-filters > .field--browse-filter {
+  margin-bottom: 0;
 }
 
 .browse-list-panel {

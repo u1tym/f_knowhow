@@ -18,6 +18,16 @@ body {
   --kh-label: #3d4450;
   --kh-accent: #2563eb;
   --kh-accent-soft: #eff6ff;
+  --kh-zone-keyword-bg: #fffbeb;
+  --kh-zone-keyword-border: #fcd34d;
+  --kh-zone-keyword-label: #b45309;
+  --kh-zone-keyword-accent: #d97706;
+  --kh-zone-keyword-accent-soft: #fef3c7;
+  --kh-zone-category-bg: #eff6ff;
+  --kh-zone-category-border: #93c5fd;
+  --kh-zone-category-label: #1d4ed8;
+  --kh-zone-category-accent: #2563eb;
+  --kh-zone-category-accent-soft: #dbeafe;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
